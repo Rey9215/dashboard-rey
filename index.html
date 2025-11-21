@@ -272,19 +272,19 @@
         <div class="balances-grid">
           <div class="balance-item">
             <div class="balance-label">Cuenta MXN · Nómina</div>
-            <div class="balance-amount">$0.00 <span class="balance-tag">OK</span></div>
+            <div class="balance-amount"><span id="saldo-nomina">$0.00</span> <span class="balance-tag">OK</span></div>
           </div>
           <div class="balance-item">
             <div class="balance-label">Cuenta MXN · Proveedores</div>
-            <div class="balance-amount">$0.00 <span class="balance-tag">OK</span></div>
+            <div class="balance-amount"><span id="saldo-proveedores">$0.00</span> <span class="balance-tag">OK</span></div>
           </div>
           <div class="balance-item">
             <div class="balance-label">Cuenta USD · Inversiones</div>
-            <div class="balance-amount">$0.00</div>
+            <div class="balance-amount"><span id="saldo-usd">$0.00</span></div>
           </div>
           <div class="balance-item">
             <div class="balance-label">Cuenta MXN · Impuestos</div>
-            <div class="balance-amount">$0.00</div>
+            <div class="balance-amount"><span id="saldo-impuestos">$0.00</span></div>
           </div>
         </div>
       </section>
@@ -377,5 +377,58 @@
       </section>
     </div>
   </div>
+
+  <!-- SCRIPT: leer saldos desde Google Sheets publicado en CSV -->
+  <script>
+    const SALDOS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJLWVPOcYt3HzpNsFLTyQXSvflg-u8F27IEWhx03PHcdFlWJS7PlDNU7jT64K9aLtlDAVCWsJe8zG7/pub?gid=348652076&single=true&output=csv";
+
+    function parseCSV(text) {
+      const lines = text.trim().split("\n");
+      const rows = lines.map(line => line.split(","));
+      const header = rows.shift();
+      return rows.map(cells =>
+        Object.fromEntries(header.map((h, i) => [h.trim(), (cells[i] || "").trim()]))
+      );
+    }
+
+    function formatoMonedaMX(valor) {
+      const num = Number(valor);
+      if (Number.isNaN(num)) return "$0.00";
+      return num.toLocaleString("es-MX", {
+        style: "currency",
+        currency: "MXN",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    fetch(SALDOS_URL)
+      .then(res => res.text())
+      .then(texto => {
+        const datos = parseCSV(texto);
+        const porId = {};
+        datos.forEach(row => {
+          porId[row.cuenta_id] = row;
+        });
+
+        const mapa = [
+          { idHtml: "saldo-nomina", key: "nomina" },
+          { idHtml: "saldo-proveedores", key: "proveedores" },
+          { idHtml: "saldo-usd", key: "usd" },
+          { idHtml: "saldo-impuestos", key: "impuestos" },
+        ];
+
+        mapa.forEach(item => {
+          const row = porId[item.key];
+          if (row && row.saldo !== undefined) {
+            const el = document.getElementById(item.idHtml);
+            if (el) el.textContent = formatoMonedaMX(row.saldo);
+          }
+        });
+      })
+      .catch(err => {
+        console.error("Error cargando saldos:", err);
+      });
+  </script>
 </body>
 </html>
