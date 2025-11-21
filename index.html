@@ -271,19 +271,19 @@
         <small>Resumen de todas tus cuentas principales</small>
         <div class="balances-grid">
           <div class="balance-item">
-            <div class="balance-label">Cuenta MXN · Nómina</div>
+            <div class="balance-label" id="label-nomina">Cuenta MXN · Nómina</div>
             <div class="balance-amount"><span id="saldo-nomina">$0.00</span> <span class="balance-tag">OK</span></div>
           </div>
           <div class="balance-item">
-            <div class="balance-label">Cuenta MXN · Proveedores</div>
+            <div class="balance-label" id="label-proveedores">Cuenta MXN · Proveedores</div>
             <div class="balance-amount"><span id="saldo-proveedores">$0.00</span> <span class="balance-tag">OK</span></div>
           </div>
           <div class="balance-item">
-            <div class="balance-label">Cuenta USD · Inversiones</div>
+            <div class="balance-label" id="label-usd">Cuenta USD · Inversiones</div>
             <div class="balance-amount"><span id="saldo-usd">$0.00</span></div>
           </div>
           <div class="balance-item">
-            <div class="balance-label">Cuenta MXN · Impuestos</div>
+            <div class="balance-label" id="label-impuestos">Cuenta MXN · Impuestos</div>
             <div class="balance-amount"><span id="saldo-impuestos">$0.00</span></div>
           </div>
         </div>
@@ -378,21 +378,13 @@
     </div>
   </div>
 
-  <!-- SCRIPT: leer saldos desde Google Sheets publicado en CSV -->
+  <!-- SCRIPT: leer saldos desde tu Google Sheets publicado en CSV -->
   <script>
     const SALDOS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJLWVPOcYt3HzpNsFLTyQXSvflg-u8F27IEWhx03PHcdFlWJS7PlDNU7jT64K9aLtlDAVCWsJe8zG7/pub?gid=348652076&single=true&output=csv";
 
-    function parseCSV(text) {
-      const lines = text.trim().split("\n");
-      const rows = lines.map(line => line.split(","));
-      const header = rows.shift();
-      return rows.map(cells =>
-        Object.fromEntries(header.map((h, i) => [h.trim(), (cells[i] || "").trim()]))
-      );
-    }
-
     function formatoMonedaMX(valor) {
-      const num = Number(valor);
+      const limpio = (valor || "").toString().replace(/[^0-9.\-]/g, "");
+      const num = Number(limpio);
       if (Number.isNaN(num)) return "$0.00";
       return num.toLocaleString("es-MX", {
         style: "currency",
@@ -402,33 +394,66 @@
       });
     }
 
-    fetch(SALDOS_URL)
-      .then(res => res.text())
-      .then(texto => {
-        const datos = parseCSV(texto);
-        const porId = {};
-        datos.forEach(row => {
-          porId[row.cuenta_id] = row;
-        });
-
-        const mapa = [
-          { idHtml: "saldo-nomina", key: "nomina" },
-          { idHtml: "saldo-proveedores", key: "proveedores" },
-          { idHtml: "saldo-usd", key: "usd" },
-          { idHtml: "saldo-impuestos", key: "impuestos" },
-        ];
-
-        mapa.forEach(item => {
-          const row = porId[item.key];
-          if (row && row.saldo !== undefined) {
-            const el = document.getElementById(item.idHtml);
-            if (el) el.textContent = formatoMonedaMX(row.saldo);
+    function cargarSaldos() {
+      fetch(SALDOS_URL)
+        .then(res => res.text())
+        .then(texto => {
+          const lineas = texto.trim().split("\n");
+          // Buscar la fila donde vienen los encabezados reales
+          const idxHeader = lineas.findIndex(l =>
+            l.includes("EMPRESA") && l.includes("CUENTA") && l.includes("SALDO ACTUAL")
+          );
+          if (idxHeader === -1) {
+            console.error("No encontré encabezados EMPRESA / CUENTA / SALDO ACTUAL");
+            return;
           }
+
+          const header = lineas[idxHeader].split(",");
+          const filas = lineas.slice(idxHeader + 1).map(l => l.split(","));
+
+          const ixEmpresa = header.indexOf("EMPRESA");
+          const ixCuenta  = header.indexOf("CUENTA");
+          const ixSaldo   = header.indexOf("SALDO ACTUAL");
+
+          if (ixEmpresa === -1 || ixCuenta === -1 || ixSaldo === -1) {
+            console.error("No encontré índices correctos", header);
+            return;
+          }
+
+          // Armar registros limpios
+          const registros = filas
+            .map(c => ({
+              empresa: (c[ixEmpresa] || "").trim(),
+              cuenta:  (c[ixCuenta]  || "").trim(),
+              saldo:   (c[ixSaldo]   || "").trim(),
+            }))
+            .filter(r => r.cuenta && r.saldo); // quitamos filas vacías
+
+          if (!registros.length) return;
+
+          // Tomamos las primeras 4 cuentas como demo
+          const cards = [
+            { saldoId: "saldo-nomina",     labelId: "label-nomina" },
+            { saldoId: "saldo-proveedores",labelId: "label-proveedores" },
+            { saldoId: "saldo-usd",        labelId: "label-usd" },
+            { saldoId: "saldo-impuestos",  labelId: "label-impuestos" },
+          ];
+
+          cards.forEach((card, idx) => {
+            const reg = registros[idx];
+            if (!reg) return;
+            const saldoEl = document.getElementById(card.saldoId);
+            const labelEl = document.getElementById(card.labelId);
+            if (saldoEl) saldoEl.textContent = formatoMonedaMX(reg.saldo);
+            if (labelEl) labelEl.textContent = `${reg.empresa} · ${reg.cuenta}`;
+          });
+        })
+        .catch(err => {
+          console.error("Error cargando saldos:", err);
         });
-      })
-      .catch(err => {
-        console.error("Error cargando saldos:", err);
-      });
+    }
+
+    cargarSaldos();
   </script>
 </body>
 </html>
