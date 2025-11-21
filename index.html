@@ -398,15 +398,15 @@
       fetch(SALDOS_URL)
         .then(res => res.text())
         .then(texto => {
-          const lineas = texto.trim().split("\n");
+          const lineas = texto.trim().split(/\r?\n/);
           if (lineas.length < 2) return;
 
-          const header = lineas[0].split(",");
+          const header = lineas[0].split(",").map(h => h.trim().toLowerCase());
           const filas = lineas.slice(1).map(l => l.split(","));
 
-          const ixCuentaId = header.indexOf("cuenta_id");
-          const ixNombre   = header.indexOf("nombre");
-          const ixSaldo    = header.indexOf("saldo");
+          const ixCuentaId = header.findIndex(h => h === "cuenta_id");
+          const ixNombre   = header.findIndex(h => h === "nombre");
+          const ixSaldo    = header.findIndex(h => h === "saldo");
 
           if (ixCuentaId === -1 || ixNombre === -1 || ixSaldo === -1) {
             console.error("No encontré columnas cuenta_id / nombre / saldo", header);
@@ -414,11 +414,13 @@
           }
 
           const registros = filas
-            .map(c => ({
-              cuenta_id: (c[ixCuentaId] || "").trim(),
-              nombre:    (c[ixNombre]   || "").trim(),
-              saldo:     (c[ixSaldo]    || "").trim(),
-            }))
+            .map(cells => {
+              const cuenta_id = (cells[ixCuentaId] || "").trim();
+              const nombre    = (cells[ixNombre]   || "").trim();
+              // saldo puede tener comas de miles -> juntamos desde ixSaldo en adelante
+              const saldoRaw  = cells.slice(ixSaldo).join("").trim();
+              return { cuenta_id, nombre, saldo: saldoRaw };
+            })
             .filter(r => r.cuenta_id && r.nombre && r.saldo);
 
           const cards = [
