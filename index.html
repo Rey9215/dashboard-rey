@@ -1,1 +1,130 @@
-
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Rey CFO</title>
+  <style>
+    :root {
+      --bg: #032836;
+      --card: #06394b;
+      --accent: #22d3ee;
+      --accent-soft: rgba(34,211,238,0.15);
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --danger: #f97373;
+      --success: #4ade80;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #075985, #020617 60%);
+      color: var(--text);
+      padding: 24px;
+    }
+    .shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(8,47,73,0.96));
+      padding: 20px 24px 28px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.45);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+    header span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1.6fr 2fr;
+      grid-template-rows: auto auto;
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 18px;
+      padding: 16px 16px 18px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.45);
+      border: 1px solid rgba(148,163,184,0.15);
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card h2 span.icon {
+      font-size: 16px;
+    }
+    .card small {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    /* 1) Saldos bancarios */
+    .balances-grid {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+    }
+    .balance-item {
+      background: rgba(15,23,42,0.7);
+      border-radius: 12px;
+      padding: 8px 10px;
+      border: 1px solid rgba(148,163,184,0.2);
+    }
+    .balance-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .balance-amount {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .balance-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(34,197,94,0.15);
+      color: var(--success);
+      margin-left: 4px;
+    }
+    /* 2) Ventas semanales (3 semanas) */
+    .sales-bars {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 11px;
+    }
+    .sales-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sales-label { width: 75px; color: var(--muted); }
+    .sales-bar-track {
+      flex: 1;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.8);
+      overflow: hidden;
+    }
+    .sales-bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #4ad
