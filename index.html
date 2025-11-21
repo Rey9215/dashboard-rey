@@ -268,23 +268,23 @@
       <!-- 1) SALDOS BANCARIOS -->
       <section class="card">
         <h2><span class="icon">💰</span>Saldos bancarios</h2>
-        <small>Resumen de todas tus cuentas principales</small>
+        <small>Resumen de todas tus cuentas principales (API_SALDOS)</small>
         <div class="balances-grid">
           <div class="balance-item">
-            <div class="balance-label" id="label-nomina">Cuenta MXN · Nómina</div>
-            <div class="balance-amount"><span id="saldo-nomina">$0.00</span> <span class="balance-tag">OK</span></div>
+            <div class="balance-label" id="label-1">Cuenta 1</div>
+            <div class="balance-amount"><span id="saldo-1">$0.00</span> <span class="balance-tag">OK</span></div>
           </div>
           <div class="balance-item">
-            <div class="balance-label" id="label-proveedores">Cuenta MXN · Proveedores</div>
-            <div class="balance-amount"><span id="saldo-proveedores">$0.00</span> <span class="balance-tag">OK</span></div>
+            <div class="balance-label" id="label-2">Cuenta 2</div>
+            <div class="balance-amount"><span id="saldo-2">$0.00</span> <span class="balance-tag">OK</span></div>
           </div>
           <div class="balance-item">
-            <div class="balance-label" id="label-usd">Cuenta USD · Inversiones</div>
-            <div class="balance-amount"><span id="saldo-usd">$0.00</span></div>
+            <div class="balance-label" id="label-3">Cuenta 3</div>
+            <div class="balance-amount"><span id="saldo-3">$0.00</span></div>
           </div>
           <div class="balance-item">
-            <div class="balance-label" id="label-impuestos">Cuenta MXN · Impuestos</div>
-            <div class="balance-amount"><span id="saldo-impuestos">$0.00</span></div>
+            <div class="balance-label" id="label-4">Cuenta 4</div>
+            <div class="balance-amount"><span id="saldo-4">$0.00</span></div>
           </div>
         </div>
       </section>
@@ -378,7 +378,7 @@
     </div>
   </div>
 
-  <!-- SCRIPT: leer saldos desde tu Google Sheets publicado en CSV -->
+  <!-- SCRIPT: leer saldos desde API_SALDOS (cuenta_id, nombre, saldo) -->
   <script>
     const SALDOS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJLWVPOcYt3HzpNsFLTyQXSvflg-u8F27IEWhx03PHcdFlWJS7PlDNU7jT64K9aLtlDAVCWsJe8zG7/pub?gid=348652076&single=true&output=csv";
 
@@ -399,53 +399,42 @@
         .then(res => res.text())
         .then(texto => {
           const lineas = texto.trim().split("\n");
-          // Buscar la fila donde vienen los encabezados reales
-          const idxHeader = lineas.findIndex(l =>
-            l.includes("EMPRESA") && l.includes("CUENTA") && l.includes("SALDO ACTUAL")
-          );
-          if (idxHeader === -1) {
-            console.error("No encontré encabezados EMPRESA / CUENTA / SALDO ACTUAL");
+          if (lineas.length < 2) return;
+
+          const header = lineas[0].split(",");
+          const filas = lineas.slice(1).map(l => l.split(","));
+
+          const ixCuentaId = header.indexOf("cuenta_id");
+          const ixNombre   = header.indexOf("nombre");
+          const ixSaldo    = header.indexOf("saldo");
+
+          if (ixCuentaId === -1 || ixNombre === -1 || ixSaldo === -1) {
+            console.error("No encontré columnas cuenta_id / nombre / saldo", header);
             return;
           }
 
-          const header = lineas[idxHeader].split(",");
-          const filas = lineas.slice(idxHeader + 1).map(l => l.split(","));
-
-          const ixEmpresa = header.indexOf("EMPRESA");
-          const ixCuenta  = header.indexOf("CUENTA");
-          const ixSaldo   = header.indexOf("SALDO ACTUAL");
-
-          if (ixEmpresa === -1 || ixCuenta === -1 || ixSaldo === -1) {
-            console.error("No encontré índices correctos", header);
-            return;
-          }
-
-          // Armar registros limpios
           const registros = filas
             .map(c => ({
-              empresa: (c[ixEmpresa] || "").trim(),
-              cuenta:  (c[ixCuenta]  || "").trim(),
-              saldo:   (c[ixSaldo]   || "").trim(),
+              cuenta_id: (c[ixCuentaId] || "").trim(),
+              nombre:    (c[ixNombre]   || "").trim(),
+              saldo:     (c[ixSaldo]    || "").trim(),
             }))
-            .filter(r => r.cuenta && r.saldo); // quitamos filas vacías
+            .filter(r => r.cuenta_id && r.nombre && r.saldo);
 
-          if (!registros.length) return;
-
-          // Tomamos las primeras 4 cuentas como demo
           const cards = [
-            { saldoId: "saldo-nomina",     labelId: "label-nomina" },
-            { saldoId: "saldo-proveedores",labelId: "label-proveedores" },
-            { saldoId: "saldo-usd",        labelId: "label-usd" },
-            { saldoId: "saldo-impuestos",  labelId: "label-impuestos" },
+            { labelId: "label-1", saldoId: "saldo-1" },
+            { labelId: "label-2", saldoId: "saldo-2" },
+            { labelId: "label-3", saldoId: "saldo-3" },
+            { labelId: "label-4", saldoId: "saldo-4" },
           ];
 
           cards.forEach((card, idx) => {
             const reg = registros[idx];
             if (!reg) return;
-            const saldoEl = document.getElementById(card.saldoId);
             const labelEl = document.getElementById(card.labelId);
+            const saldoEl = document.getElementById(card.saldoId);
+            if (labelEl) labelEl.textContent = reg.nombre;
             if (saldoEl) saldoEl.textContent = formatoMonedaMX(reg.saldo);
-            if (labelEl) labelEl.textContent = `${reg.empresa} · ${reg.cuenta}`;
           });
         })
         .catch(err => {
