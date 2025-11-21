@@ -127,4 +127,255 @@
     .sales-bar-fill {
       height: 100%;
       border-radius: inherit;
-      background: linear-gradient(90deg, var(--accent), #4ad
+      background: linear-gradient(90deg, var(--accent), #4ade80);
+      width: 60%;
+    }
+    .sales-value {
+      width: 52px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    /* 3) Tasks hoy */
+    .tasks-list {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 11px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: rgba(15,23,42,0.72);
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.2);
+    }
+    .task-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .task-text { flex: 1; }
+    .task-time { color: var(--muted); }
+    /* 4) Calendario */
+    .calendar-mini {
+      margin-top: 10px;
+      font-size: 11px;
+    }
+    .calendar-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .calendar-events {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .event-item {
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(148,163,184,0.2);
+    }
+    .event-time { font-size: 11px; color: var(--muted); }
+    .event-title { font-size: 11px; font-weight: 500; }
+    /* 5) Chatbot */
+    .chat-card {
+      grid-column: 1 / span 3;
+      margin-top: 4px;
+    }
+    .chat-window {
+      margin-top: 10px;
+      background: rgba(15,23,42,0.9);
+      border-radius: 14px;
+      border: 1px solid rgba(148,163,184,0.35);
+      height: 170px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+      font-size: 11px;
+    }
+    .chat-msg {
+      max-width: 75%;
+      padding: 6px 8px;
+      border-radius: 12px;
+    }
+    .chat-msg.me {
+      align-self: flex-end;
+      background: linear-gradient(135deg,#22d3ee,#38bdf8);
+      color: #0f172a;
+    }
+    .chat-msg.bot {
+      align-self: flex-start;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(148,163,184,0.45);
+    }
+    .chat-input-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .chat-input {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      padding: 6px 12px;
+      font-size: 11px;
+      background: rgba(15,23,42,0.8);
+      color: var(--text);
+    }
+    .chat-btn {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 14px;
+      font-size: 11px;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+      .chat-card { grid-column: 1 / span 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <h1>Dashboard CFO – Rey</h1>
+        <span>Visión rápida: bancos · ventas · tareas · calendario · asistente</span>
+      </div>
+      <div>
+        <span>Hoy · 09:24 am</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- 1) SALDOS BANCARIOS -->
+      <section class="card">
+        <h2><span class="icon">💰</span>Saldos bancarios</h2>
+        <small>Resumen de todas tus cuentas principales</small>
+        <div class="balances-grid">
+          <div class="balance-item">
+            <div class="balance-label">Cuenta MXN · Nómina</div>
+            <div class="balance-amount">$0.00 <span class="balance-tag">OK</span></div>
+          </div>
+          <div class="balance-item">
+            <div class="balance-label">Cuenta MXN · Proveedores</div>
+            <div class="balance-amount">$0.00 <span class="balance-tag">OK</span></div>
+          </div>
+          <div class="balance-item">
+            <div class="balance-label">Cuenta USD · Inversiones</div>
+            <div class="balance-amount">$0.00</div>
+          </div>
+          <div class="balance-item">
+            <div class="balance-label">Cuenta MXN · Impuestos</div>
+            <div class="balance-amount">$0.00</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2) VENTAS SEMANALES (3 SEMANAS) -->
+      <section class="card">
+        <h2><span class="icon">📈</span>Ventas semanales (últimas 3)</h2>
+        <small>Comparativo global de todas las sucursales</small>
+        <div class="sales-bars">
+          <div class="sales-row">
+            <div class="sales-label">Semana -2</div>
+            <div class="sales-bar-track"><div class="sales-bar-fill" style="width:55%"></div></div>
+            <div class="sales-value">$0k</div>
+          </div>
+          <div class="sales-row">
+            <div class="sales-label">Semana -1</div>
+            <div class="sales-bar-track"><div class="sales-bar-fill" style="width:70%"></div></div>
+            <div class="sales-value">$0k</div>
+          </div>
+          <div class="sales-row">
+            <div class="sales-label">Semana 0</div>
+            <div class="sales-bar-track"><div class="sales-bar-fill" style="width:65%"></div></div>
+            <div class="sales-value">$0k</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3) TASKS DE HOY -->
+      <section class="card">
+        <h2><span class="icon">📝</span>Tasks de hoy</h2>
+        <small>Leídas desde tu archivo maestro de tareas</small>
+        <div class="tasks-list">
+          <div class="task-item">
+            <div class="task-dot"></div>
+            <div class="task-text">Revisar balanza de CAFE CACHANILLA · Agosto</div>
+            <div class="task-time">10:00</div>
+          </div>
+          <div class="task-item">
+            <div class="task-dot"></div>
+            <div class="task-text">Reunión con contabilidad · cierre mensual</div>
+            <div class="task-time">12:30</div>
+          </div>
+          <div class="task-item">
+            <div class="task-dot"></div>
+            <div class="task-text">Enviar reporte financiero al CEO</div>
+            <div class="task-time">16:00</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4) CALENDARIO GMAIL -->
+      <section class="card">
+        <h2><span class="icon">📅</span>Agenda de hoy (Google Calendar)</h2>
+        <small>Sincronizada con tu calendario principal</small>
+        <div class="calendar-mini">
+          <div class="calendar-row">
+            <span>Hoy · Jueves 21</span>
+            <span>3 eventos</span>
+          </div>
+        </div>
+        <div class="calendar-events">
+          <div class="event-item">
+            <div class="event-time">09:30 – 10:15</div>
+            <div class="event-title">Revisión flujo de efectivo</div>
+          </div>
+          <div class="event-item">
+            <div class="event-time">11:00 – 12:00</div>
+            <div class="event-title">Llamada con socios</div>
+          </div>
+          <div class="event-item">
+            <div class="event-time">17:00 – 17:30</div>
+            <div class="event-title">Planeación fiscal mensual</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5) CHATBOT PODEROSO -->
+      <section class="card chat-card">
+        <h2><span class="icon">🤖</span>Asistente Rey · Chatbot Poderoso</h2>
+        <small>Habla con tu asistente: bancos, ventas, tareas, ideas y más</small>
+        <div class="chat-window">
+          <div class="chat-msg bot">Hola Rey 👑, tengo listo tu resumen de hoy. ¿Qué necesitas revisar primero?</div>
+          <div class="chat-msg me">Dime las ventas de las últimas 3 semanas y si alguna sucursal viene cayendo.</div>
+          <div class="chat-msg bot">Claro. Semana actual ligeramente abajo (-4%) vs semana pasada. Sucursal Centro lleva 2 semanas seguidas a la baja.</div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" placeholder="Escríbele algo a tu asistente..." />
+          <button class="chat-btn">Enviar</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
