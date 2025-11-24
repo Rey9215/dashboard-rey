@@ -287,7 +287,7 @@
         </div>
       </section>
 
-      <!-- 2) VENTAS SEMANALES (por ahora demo) -->
+      <!-- 2) VENTAS SEMANALES (demo de momento) -->
       <section class="card">
         <h2><span class="icon">📈</span>Ventas semanales (últimas 3)</h2>
         <small>Comparativo global de todas las sucursales</small>
@@ -310,7 +310,7 @@
         </div>
       </section>
 
-      <!-- 3) TASKS DE HOY (dinámicas desde Google Sheets) -->
+      <!-- 3) TASKS DE HOY -->
       <section class="card">
         <h2><span class="icon">📝</span>Tasks de hoy</h2>
         <small>Tareas con fecha límite HOY (PIZARRON DE PENDIENTES)</small>
@@ -371,11 +371,11 @@
     const SALDOS_URL =
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJLWVPOcYt3HzpNsFLTyQXSvflg-u8F27IEWhx03PHcdFlWJS7PlDNU7jT64K9aLtlDAVCWsJe8zG7/pub?gid=348652076&single=true&output=csv";
 
-    // PIZARRON DE PENDIENTES (AGENDA 2025)
+    // AGENDA 2025 – PIZARRON DE PENDIENTES (gid=0)
     const TASKS_URL =
-      "https://docs.google.com/spreadsheets/d/1mg-HWdEOzrZn5B0wOq-pmv5ISeTSQ8TeezVqGutdqOY/export?format=csv&gid=977319746";
+      "https://docs.google.com/spreadsheets/d/1mg-HWdEOzrZn5B0wOq-pmv5ISeTSQ8TeezVqGutdqOY/export?format=csv&gid=0";
 
-    // Utilidades
+    // -------- Utilidades --------
     function formatoMonedaMX(valor) {
       const limpio = (valor || "").toString().replace(/[^0-9.\-]/g, "");
       const num = Number(limpio);
@@ -394,6 +394,24 @@
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       const yyyy = d.getFullYear();
       return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // -------- RELOJ HEADER --------
+    function actualizarHora() {
+      const ahora = new Date();
+      const fecha = ahora.toLocaleDateString("es-MX", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const hora = ahora.toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      const el = document.getElementById("hora-header");
+      if (el) el.textContent = `${fecha} · ${hora}`;
     }
 
     // -------- SALDOS BANCARIOS --------
@@ -420,7 +438,7 @@
             .map(cells => {
               const cuenta_id = (cells[ixCuentaId] || "").trim();
               const nombre    = (cells[ixNombre]   || "").trim();
-              const saldoRaw  = cells.slice(ixSaldo).join("").trim();
+              const saldoRaw  = cells.slice(ixSaldo).join("").trim(); // por si trae comas
               return { cuenta_id, nombre, saldo: saldoRaw };
             })
             .filter(r => r.cuenta_id && r.nombre && r.saldo);
@@ -447,12 +465,15 @@
     // -------- TASKS HOY --------
     function cargarTasksHoy() {
       const hoy = fechaHoyStr();
-      fetch(TASKS_URL)
-        .then(res => res.text())
-        .then(texto => {
-          const contenedor = document.getElementById("tasks-list");
-          if (!contenedor) return;
+      const contenedor = document.getElementById("tasks-list");
+      if (!contenedor) return;
 
+      fetch(TASKS_URL)
+        .then(res => {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.text();
+        })
+        .then(texto => {
           const lineas = texto.trim().split(/\r?\n/);
           if (lineas.length < 2) {
             contenedor.innerHTML = "<div class='task-item'><div class='task-text'>Sin tareas encontradas.</div></div>";
@@ -464,11 +485,14 @@
 
           const ixTema        = header.findIndex(h => h === "tema");
           const ixResponsable = header.findIndex(h => h === "responsable");
-          const ixFecha       = header.findIndex(h => h === "fecha limite" || h === "fecha_limte" || h === "fecha_límite");
+          const ixFecha       = header.findIndex(h =>
+            h === "fecha limite" || h === "fecha_limte" || h === "fecha límite"
+          );
 
           if (ixTema === -1 || ixResponsable === -1 || ixFecha === -1) {
             console.error("No encontré columnas tema / responsable / fecha limite", header);
-            contenedor.innerHTML = "<div class='task-item'><div class='task-text'>No se pudieron leer las columnas de tareas.</div></div>";
+            contenedor.innerHTML =
+              "<div class='task-item'><div class='task-text'>No se encontraron columnas válidas.</div></div>";
             return;
           }
 
@@ -505,36 +529,30 @@
             contenedor.appendChild(item);
           });
         })
-        .catch(err => console.error("Error cargando tasks:", err));
+        .catch(err => {
+          console.error("Error cargando tasks:", err);
+          contenedor.innerHTML = `
+            <div class="task-item">
+              <div class="task-dot"></div>
+              <div class="task-text">Error cargando tasks. Revisa el link del CSV.</div>
+              <div class="task-time"></div>
+            </div>
+          `;
+        });
     }
 
-    // -------- RELOJ HEADER --------
-    function actualizarHora() {
-      const ahora = new Date();
-      const fecha = ahora.toLocaleDateString("es-MX", {
-        weekday: "short",
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-      const hora = ahora.toLocaleTimeString("es-MX", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-      const el = document.getElementById("hora-header");
-      if (el) el.textContent = `${fecha} · ${hora}`;
-    }
-
-    // Primera carga
+    // ---- Inicialización y auto–refresh ----
     cargarSaldos();
     cargarTasksHoy();
     actualizarHora();
 
-    // Auto–refresh cada 60 segundos
+    // Cada 60 segundos refrescamos saldos y tasks
     setInterval(cargarSaldos, 60 * 1000);
     setInterval(cargarTasksHoy, 60 * 1000);
+    // Reloj cada segundo
     setInterval(actualizarHora, 1000);
   </script>
 </body>
 </html>
+
+
