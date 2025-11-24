@@ -162,7 +162,7 @@
       flex-shrink: 0;
     }
     .task-text { flex: 1; }
-    .task-time { color: var(--muted); }
+    .task-time { color: var(--muted); white-space: nowrap; }
     /* Calendario mini */
     .calendar-mini {
       margin-top: 10px;
@@ -287,7 +287,7 @@
         </div>
       </section>
 
-      <!-- 2) VENTAS SEMANALES (estático por ahora) -->
+      <!-- 2) VENTAS SEMANALES (por ahora demo) -->
       <section class="card">
         <h2><span class="icon">📈</span>Ventas semanales (últimas 3)</h2>
         <small>Comparativo global de todas las sucursales</small>
@@ -310,25 +310,15 @@
         </div>
       </section>
 
-      <!-- 3) TASKS DE HOY (estático por ahora) -->
+      <!-- 3) TASKS DE HOY (dinámicas desde Google Sheets) -->
       <section class="card">
         <h2><span class="icon">📝</span>Tasks de hoy</h2>
-        <small>Leídas desde tu archivo maestro de tareas</small>
-        <div class="tasks-list">
+        <small>Tareas con fecha límite HOY (PIZARRON DE PENDIENTES)</small>
+        <div id="tasks-list" class="tasks-list">
           <div class="task-item">
             <div class="task-dot"></div>
-            <div class="task-text">Revisar balanza de CAFE CACHANILLA · Agosto</div>
-            <div class="task-time">10:00</div>
-          </div>
-          <div class="task-item">
-            <div class="task-dot"></div>
-            <div class="task-text">Reunión con contabilidad · cierre mensual</div>
-            <div class="task-time">12:30</div>
-          </div>
-          <div class="task-item">
-            <div class="task-dot"></div>
-            <div class="task-text">Enviar reporte financiero al CEO</div>
-            <div class="task-time">16:00</div>
+            <div class="task-text">Cargando tareas...</div>
+            <div class="task-time"></div>
           </div>
         </div>
       </section>
@@ -336,7 +326,7 @@
       <!-- 4) AGENDA -->
       <section class="card">
         <h2><span class="icon">📅</span>Agenda de hoy (Google Calendar)</h2>
-        <small>Sincronizada con tu calendario principal</small>
+        <small>Sincronizada con tu calendario principal (demo visual)</small>
         <div class="calendar-mini">
           <div class="calendar-row">
             <span>Hoy · Jueves 21</span>
@@ -377,9 +367,15 @@
   </div>
 
   <script>
+    // URLs de datos
     const SALDOS_URL =
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vTJLWVPOcYt3HzpNsFLTyQXSvflg-u8F27IEWhx03PHcdFlWJS7PlDNU7jT64K9aLtlDAVCWsJe8zG7/pub?gid=348652076&single=true&output=csv";
 
+    // PIZARRON DE PENDIENTES (AGENDA 2025)
+    const TASKS_URL =
+      "https://docs.google.com/spreadsheets/d/1mg-HWdEOzrZn5B0wOq-pmv5ISeTSQ8TeezVqGutdqOY/export?format=csv&gid=977319746";
+
+    // Utilidades
     function formatoMonedaMX(valor) {
       const limpio = (valor || "").toString().replace(/[^0-9.\-]/g, "");
       const num = Number(limpio);
@@ -392,6 +388,15 @@
       });
     }
 
+    function fechaHoyStr() {
+      const d = new Date();
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
+    // -------- SALDOS BANCARIOS --------
     function cargarSaldos() {
       fetch(SALDOS_URL)
         .then(res => res.text())
@@ -415,7 +420,7 @@
             .map(cells => {
               const cuenta_id = (cells[ixCuentaId] || "").trim();
               const nombre    = (cells[ixNombre]   || "").trim();
-              const saldoRaw  = cells.slice(ixSaldo).join("").trim(); // une por si trae comas
+              const saldoRaw  = cells.slice(ixSaldo).join("").trim();
               return { cuenta_id, nombre, saldo: saldoRaw };
             })
             .filter(r => r.cuenta_id && r.nombre && r.saldo);
@@ -439,22 +444,96 @@
         .catch(err => console.error("Error cargando saldos:", err));
     }
 
-    // Primera carga al abrir el dashboard
-    cargarSaldos();
+    // -------- TASKS HOY --------
+    function cargarTasksHoy() {
+      const hoy = fechaHoyStr();
+      fetch(TASKS_URL)
+        .then(res => res.text())
+        .then(texto => {
+          const contenedor = document.getElementById("tasks-list");
+          if (!contenedor) return;
 
-    // 🔄 Refrescar automáticamente cada 60 segundos
-    setInterval(cargarSaldos, 60 * 1000);
+          const lineas = texto.trim().split(/\r?\n/);
+          if (lineas.length < 2) {
+            contenedor.innerHTML = "<div class='task-item'><div class='task-text'>Sin tareas encontradas.</div></div>";
+            return;
+          }
 
-    // Reloj en el header
+          const header = lineas[0].split(",").map(h => h.trim().toLowerCase());
+          const filas = lineas.slice(1).map(l => l.split(","));
+
+          const ixTema        = header.findIndex(h => h === "tema");
+          const ixResponsable = header.findIndex(h => h === "responsable");
+          const ixFecha       = header.findIndex(h => h === "fecha limite" || h === "fecha_limte" || h === "fecha_límite");
+
+          if (ixTema === -1 || ixResponsable === -1 || ixFecha === -1) {
+            console.error("No encontré columnas tema / responsable / fecha limite", header);
+            contenedor.innerHTML = "<div class='task-item'><div class='task-text'>No se pudieron leer las columnas de tareas.</div></div>";
+            return;
+          }
+
+          const tareasHoy = filas
+            .map(cells => {
+              const tema = (cells[ixTema] || "").trim();
+              const responsable = (cells[ixResponsable] || "").trim();
+              const fecha = (cells[ixFecha] || "").trim();
+              return { tema, responsable, fecha };
+            })
+            .filter(t => t.tema && t.fecha === hoy);
+
+          contenedor.innerHTML = "";
+
+          if (!tareasHoy.length) {
+            contenedor.innerHTML = `
+              <div class="task-item">
+                <div class="task-dot"></div>
+                <div class="task-text">Sin tasks con fecha límite hoy 🎉</div>
+                <div class="task-time"></div>
+              </div>
+            `;
+            return;
+          }
+
+          tareasHoy.forEach(t => {
+            const item = document.createElement("div");
+            item.className = "task-item";
+            item.innerHTML = `
+              <div class="task-dot"></div>
+              <div class="task-text">${t.tema}</div>
+              <div class="task-time">${t.responsable || ""}</div>
+            `;
+            contenedor.appendChild(item);
+          });
+        })
+        .catch(err => console.error("Error cargando tasks:", err));
+    }
+
+    // -------- RELOJ HEADER --------
     function actualizarHora() {
       const ahora = new Date();
-      const txt = ahora.toLocaleDateString("es-MX", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })
-        + " · " +
-        ahora.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      const fecha = ahora.toLocaleDateString("es-MX", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const hora = ahora.toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
       const el = document.getElementById("hora-header");
-      if (el) el.textContent = txt;
+      if (el) el.textContent = `${fecha} · ${hora}`;
     }
+
+    // Primera carga
+    cargarSaldos();
+    cargarTasksHoy();
     actualizarHora();
+
+    // Auto–refresh cada 60 segundos
+    setInterval(cargarSaldos, 60 * 1000);
+    setInterval(cargarTasksHoy, 60 * 1000);
     setInterval(actualizarHora, 1000);
   </script>
 </body>
